@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+root=$(pwd)
+
+function usage {
+  cat <<HELP_USAGE
+usage: $0 [options]
+
+Script created to test our Player class faster
+
+options:
+  -h, --help                    show this help message and exit
+  -b <path>, --build <path>     compile all java files inside <path>
+  -c <path>, --clean <path>     remove all class files inside <path>
+  -rb <path>, --rebuild <path>  remove all class and compile all java files inside <path>
+HELP_USAGE
+}
+
+function build {
+  path="${1:-$root/src/mnkgame}"
+
+  echo "mkdir -p $root/build"
+  echo $(javac -cp src -d build $(find $path -name "*.java"))
+}
+
+function clean {
+  path="${1:-$root/src/mnkgame}"
+
+  echo $(rm -rf $root/build)
+}
+
+function main {
+  case $1 in
+    "-b" | "--build") build $2 ;;
+    "-c" | "--clean") clean $2 ;;
+    "-rb" | "--rebuild") clean $2; build $2 ;;
+    "-h" | "--help" | *) usage ;;
+  esac
+}
+
+main "$@"
