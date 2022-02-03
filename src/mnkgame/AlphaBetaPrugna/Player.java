@@ -145,8 +145,9 @@ final public class Player implements MNKPlayer {
     if (isTimeFinishing()) return SAFETY_HALT;
     if (depth == 0 || !board.isGameOpen()) return eval(board, depth);
 
+    MNKCell[] sortedCells = sortMoves(board);
     int eval = isMaximizing ? INFINITY_NEGATIVE : INFINITY_POSITIVE;
-    for (MNKCell cell : board.getFreeCells()) {
+    for (MNKCell cell : sortedCells) {
       board.markCell(cell);
 
       int score = alphaBeta(board, depth - 1, alpha, beta, !isMaximizing);
@@ -186,21 +187,20 @@ final public class Player implements MNKPlayer {
    * @param lastCell
    * @return
    */
-  private MNKCell[] sortCellsInCircularWay(MNKCell lastCell) {
-    HashSet<MNKCell> FC = board.getFCSet();
-    Map<MNKCell, String> sortedFreeCells = new LinkedHashMap<>(FC.size());
+  private List<MNKCell> sortCellsInCircularWay(MNKCell lastCell, int FCSize) {
+    Map<MNKCell, String> sortedFreeCells = new LinkedHashMap<>(FCSize);
     Map<String, Direction> copyDirections = Direction.getDirections();
     List<Direction> notValidDirections = new ArrayList<Direction>();
 
     for (int i = 1; i <= board.K; i++) {
-      for (var direction : directions.entrySet()) {
+      for (var direction : copyDirections.entrySet()) {
         int x = lastCell.i + direction.getValue().point.x * i;
         int y = lastCell.j + direction.getValue().point.y * i;
 
         // Se la cella è fuori dai limiti della board per il valore di
         // "i" corrente lo sarà sicuramente anche per i successivi,
-        // dunque possiamo eliminare la "direction" corrente e andare
-        // alla successiva.
+        // dunque possiamo aggiungere tale "direction" nella lista
+        // delle direzioni non valide.
         if (!board.isCellInBounds(x, y)) {
           notValidDirections.add(direction.getValue());
           continue;
@@ -212,16 +212,22 @@ final public class Player implements MNKPlayer {
         if (board.cellState(x, y) == MNKCellState.FREE) {
           MNKCell cell = new MNKCell(x, y);
           sortedFreeCells.putIfAbsent(cell, null);
-          FC.remove(cell);
         }
       }
 
+      // Eliminiamo da copyDirections le direzioni non valide
+      for (var notValidDirection : notValidDirections)
+        copyDirections.remove(notValidDirection, null);
+
       // Se non abbiamo più direzioni in cui muoverci non ha
-      // senso continuare e quindi interrompiamo il for.
+      // senso continuare e quindi possiamo uscire dal for.
       if (copyDirections.size() == 0) break;
+
+      // Ripristino allo stato iniziale notValidDirections
+      notValidDirections.removeAll(notValidDirections);
     }
 
-    return sortedFreeCells.keySet().toArray(new MNKCell[0]);
+    return Arrays.asList(sortedFreeCells.keySet().toArray(new MNKCell[0]));
   }
 
   /**
@@ -236,21 +242,45 @@ final public class Player implements MNKPlayer {
    */
   private MNKCell[] sortMoves(Board board) {
     HashSet<MNKCell> FC = board.getFCSet();
+
+    //
     MNKCell myLastMarkedCell = board.getLastMarkedCell(myCellState);
     MNKCell opponentLastMarkedCell = board.getLastMarkedCell(opponentCellState);
-    Map<MNKCell, String> sortedFreeCells = new LinkedHashMap<>(FC.size());
 
-    if (myLastMarkedCell != null) {
+    if (myLastMarkedCell == null || opponentLastMarkedCell == null)
+      return board.getFreeCells();
+
+    // Ordina le mosse in modo circolare
+    List<MNKCell> mySortedCells = sortCellsInCircularWay(myLastMarkedCell, FC.size());
+    List<MNKCell> opponentSortedCells = sortCellsInCircularWay(opponentLastMarkedCell, FC.size());
+
+    List<MNKCell> sortedFreeCellsList = new ArrayList<MNKCell>();
+
+    // Intersection between mySortedCells and opponentSortedCells
+    List<MNKCell> intersection = new ArrayList<>();
+
+    for(MNKCell cell: mySortedCells) {
+      if (mySortedCells.contains(cell) && opponentSortedCells.contains(cell))
+        intersection.add(cell);
+    }
+    sortedFreeCellsList.addAll(intersection);
+
+    for (MNKCell cell : mySortedCells) {
+      if (!sortedFreeCellsList.contains(cell))
+        sortedFreeCellsList.add(cell);
     }
 
-    // Merge di sortedFreeCells e FC
-    //  - FC
-    //  - sortedFreeCells come collection
-    // sortedFreeCells.merge(key, value, remappingFunction)
-    // FC.c
-    // Trasformazione di sortedFreeCells in un array
+    for (MNKCell cell : opponentSortedCells) {
+      if (!sortedFreeCellsList.contains(cell))
+        sortedFreeCellsList.add(cell);
+    }
 
-    return sortedFreeCells.keySet().toArray(new MNKCell[0]);
+    // merge free Cells rimanenti
+    for (MNKCell cell: FC) {
+      if (!sortedFreeCellsList.contains(cell)) sortedFreeCellsList.add(cell);
+    }
+
+    return sortedFreeCellsList.toArray(new MNKCell[0]);
   }
 
   /**
