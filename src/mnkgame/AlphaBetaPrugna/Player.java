@@ -18,8 +18,9 @@ final public class Player implements MNKPlayer {
   public double timeoutInMillis;
   public MNKGameState myWinState, opponentWinState;
   public MNKCellState myCellState, opponentCellState;
-
   private double startTime, maxSearchingTime;
+  private Map<MNKCell, Integer> boardScores;
+
   private static final double SAFETY_THRESHOLD = 0.95;
   private static final int SAFETY_HALT = Integer.MAX_VALUE / 2;
   private static final int INFINITY_POSITIVE = Integer.MAX_VALUE;
@@ -33,6 +34,81 @@ final public class Player implements MNKPlayer {
    * Default empty constructor
    */
   public Player() {
+  }
+
+  /**
+   * Associate a score to each cell on the board.
+   *
+   * @param M Number of rows
+   * @param N Number of columns
+   */
+  private void setBoardScores(int M, int N) {
+    /**
+     * Example: 4x4
+     *
+     * up ->    |  1 |  2 |  3 |  4 |
+     *          |  5 |  6 |  7 |  8 |
+     *          |  9 | 10 | 11 | 12 |
+     * down ->  | 13 | 14 | 15 | 16 |
+     *            ^              ^
+     *            |              |
+     *          left           right
+     *
+     * Direction:
+     *  - 0 : LEFT  -> RIGHT
+     *  - 1 : UP    -> DOWN
+     *  - 2 : RIGHT -> LEFT
+     *  - 3 : DOWN  -> UP
+     */
+    int up = 0;
+    int down = M - 1;
+    int left = 0;
+    int right = N - 1;
+    int direction = 0;
+
+    System.out.println(up + " " + down + " " +
+                       left + " " + right);
+    int score = 1;
+    while (up <= down && left <= right) {
+      // We move from left to right
+      if (direction == 0) {
+        for (int i = left; i <= right; i++) {
+          MNKCell cell = new MNKCell(up, i);
+          boardScores.put(cell, score);
+        }
+        up++;
+      }
+
+      // We move from up to down
+      if (direction == 1) {
+        for (int i = up; i <= down; i++) {
+          MNKCell cell = new MNKCell(i, right);
+          boardScores.put(cell, score);
+        }
+        right--;
+      }
+
+      // We move from right to left
+      if (direction == 2) {
+        for (int i = right; i >= left; i--) {
+          MNKCell cell = new MNKCell(down, i);
+          boardScores.put(cell, score);
+        }
+        down--;
+      }
+
+      // We move from down to up
+      if (direction == 3) {
+        for (int i = down; i >= up; i--) {
+          MNKCell cell = new MNKCell(i, left);
+          boardScores.put(cell, score);
+        }
+        left++;
+      }
+
+      if (direction == 3) score++;
+      direction = (direction + 1) % 4;
+    }
   }
 
   /**
@@ -51,6 +127,9 @@ final public class Player implements MNKPlayer {
     this.opponentCellState = first ? MNKCellState.P2 : MNKCellState.P1;
 
     this.maxSearchingTime = this.timeoutInMillis * SAFETY_THRESHOLD;
+
+    this.boardScores = new LinkedHashMap<>(M * N);
+    setBoardScores(M, N);
   }
 
   /**
@@ -330,8 +409,10 @@ final public class Player implements MNKPlayer {
      */
     private long evalDirection(Direction direction) {
       long score = 0;
+      int numberOfConsecutiveCells = 0;
       Point point = direction.point;
       boolean hasTouchedEnemyCell = false;
+      boolean hasTouchedFreeCell = false;
 
       // viene settata a true quando siamo sicuri che la cella non è fuori
       // dalla Board alla prima iterazione. In questo modo evitiamo che venga
@@ -345,8 +426,7 @@ final public class Player implements MNKPlayer {
         int x = startCell.i + point.x * i;
         int y = startCell.j + point.y * i;
 
-        if (!board.isCellInBounds(x, y))
-          break;
+        if (!board.isCellInBounds(x, y)) break;
 
         hasEnteredInCycle = true;
         MNKCell cell = new MNKCell(x, y, board.cellState(x, y));
@@ -355,7 +435,11 @@ final public class Player implements MNKPlayer {
 
         if (isStartCellState) {
           score += 1;
-        } else if (!isStartCellState && !isFreeCellState) {
+
+          if (!hasTouchedFreeCell) numberOfConsecutiveCells++;
+        } else if (isFreeCellState) {
+          hasTouchedFreeCell = true;
+        } else {
           hasTouchedEnemyCell = true;
           break;
         }
@@ -364,7 +448,13 @@ final public class Player implements MNKPlayer {
       if (!hasTouchedEnemyCell && hasEnteredInCycle)
         score += 1;
 
-      return score;
+      score = numberOfConsecutiveCells >= board.K - 2
+        ? score + numberOfConsecutiveCells
+        : score;
+
+      MNKCell startCellWithoutState = new MNKCell(this.startCell.i, this.startCell.j);
+      int cellScoreInBoard = boardScores.get(startCellWithoutState);
+      return score + cellScoreInBoard;
     }
 
     public long evalCell() {
