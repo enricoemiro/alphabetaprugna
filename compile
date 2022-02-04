@@ -1,41 +1,46 @@
 #!/usr/bin/env bash
 
 root=$(pwd)
+build_dir="$root/build"
+src_dir="$root/src/mnkgame"
 
 function usage {
   cat <<HELP_USAGE
 usage: $0 [options]
 
-Script created to test our Player class faster
+Script created to compile the source files.
 
 options:
   -h, --help                    show this help message and exit
-  -b <path>, --build <path>     compile all java files inside <path>
-  -c <path>, --clean <path>     remove all class files inside <path>
-  -rb <path>, --rebuild <path>  remove all class and compile all java files inside <path>
+  -c, --clean                   delete the "build" folder
+  -b, --build                   build the "src" folder
+  -rb, --rebuild                executes in succession: -c and -b commands
 HELP_USAGE
 }
 
 function build {
-  path="${1:-$root/src/mnkgame}"
-
-  echo "mkdir -p $root/build"
-  echo $(javac -cp src -d build $(find $path -name "*.java"))
+  files=$(find $src_dir -name "*.java")
+  echo $(javac -cp $src_dir -d build $files)
 }
 
 function clean {
-  path="${1:-$root/src/mnkgame}"
+  echo $(rm -rf $build_dir)
+}
 
-  echo $(rm -rf $root/build)
+function rebuild {
+  clean
+  build
 }
 
 function main {
   case $1 in
-    "-b" | "--build") build $2 ;;
-    "-c" | "--clean") clean $2 ;;
-    "-rb" | "--rebuild") clean $2; build $2 ;;
+    "-c" | "--clean") clean ;;
+    "-b" | "--build") build ;;
+    "-rb" | "--rebuild") rebuild ;;
     "-h" | "--help" | *) usage ;;
   esac
+
+  exit 0
 }
 
 main "$@"
