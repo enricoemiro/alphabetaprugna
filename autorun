@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+root=$(pwd)
+test_dir="$root/test"
+build_dir="$root/build/mnkgame"
+default_my="mnkgame.AlphaBetaPrugna.Player"
+default_opponent="QuasiRandomPlayer"
+
+function usage {
+  cat<<HELP_USAGE
+usage: $0 [options]
+
+Script created to test our Player class automatically
+
+options:
+  -h, --help                    show this help message and exit
+  -op <name>, --opponent <name> start a match against <name> on all configurations
+HELP_USAGE
+}
+
+function run_match {
+  match_dir="$test_dir/$4/$5"
+  echo $(mkdir -p $match_dir)
+
+  output_file="$match_dir/$1-$2-$3-$(date +%s).txt"
+  echo $(cd $build_dir &&
+         java -cp '..' mnkgame.MNKPlayerTester $1 $2 $3 $4 $5 -r $6) > $output_file
+}
+
+function command {
+  M="${1:-3}"
+  N="${2:-3}"
+  K="${3:-3}"
+  opponent="${4:-$default_opponent}"
+  rounds="${5:-2}"
+
+  run_match $M $N $K $default_my "mnkgame.$opponent" $rounds
+  run_match $M $N $K "mnkgame.$opponent" $default_my $rounds
+}
+
+function autorun {
+  echo $(mkdir -p $test_dir)
+
+  command "3" "3" "3" "$1" "2" &
+  command "4" "3" "3" "$1" "2" &
+  command "4" "4" "3" "$1" "2" &
+  wait
+  command "5" "4" "4" "$1" "2" &
+  command "5" "5" "4" "$1" "2" &
+  command "5" "5" "5" "$1" "2" &
+  wait
+  command "6" "4" "4" "$1" "2" &
+  command "6" "5" "4" "$1" "2" &
+  command "6" "6" "4" "$1" "2" &
+  wait
+  command "6" "6" "5" "$1" "2" &
+  command "6" "6" "6" "$1" "2" &
+  command "7" "4" "4" "$1" "2" &
+  wait
+  command "7" "5" "4" "$1" "2" &
+  command "7" "6" "4" "$1" "2" &
+  command "7" "7" "4" "$1" "2" &
+  wait
+  command "7" "5" "5" "$1" "2" &
+  command "7" "6" "5" "$1" "2" &
+  command "7" "7" "5" "$1" "2" &
+  wait
+  command "7" "7" "6" "$1" "2" &
+  command "7" "7" "7" "$1" "2" &
+  command "8" "8" "4" "$1" "2" &
+  wait
+  command "10" "10" "5" "$1" "2"
+
+  # I do not recommend uncommenting these lines
+  # command "50" "50" "10" "$1" "2"
+  # command "70" "70" "10" "$1" "2"
+}
+
+function main {
+  case $1 in
+    "-op" | "--opponent" |*) autorun $2 ;;
+    "-h" | "--help") usage ;;
+  esac
+
+  exit 0
+}
+
+main "$@"
