@@ -130,6 +130,12 @@ final public class Player implements MNKPlayer {
 
     this.boardScores = new LinkedHashMap<>(M * N);
     setBoardScores(M, N);
+
+    for (var boardScore : this.boardScores.entrySet()) {
+      MNKCell cell = boardScore.getKey();
+      int score = boardScore.getValue();
+      System.out.format("Cell: %s - Score: %d\n", cell, score);
+    }
   }
 
   /**
@@ -452,9 +458,7 @@ final public class Player implements MNKPlayer {
         ? score + numberOfConsecutiveCells
         : score;
 
-      MNKCell startCellWithoutState = new MNKCell(this.startCell.i, this.startCell.j);
-      int cellScoreInBoard = boardScores.get(startCellWithoutState);
-      return score + cellScoreInBoard;
+      return score;
     }
 
     public long evalCell() {
@@ -463,7 +467,9 @@ final public class Player implements MNKPlayer {
       for (var direction : directions.entrySet())
         score += this.evalDirection(direction.getValue());
 
-      return score;
+      MNKCell startCellWithoutState = new MNKCell(this.startCell.i, this.startCell.j);
+      int cellScoreInBoard = boardScores.get(startCellWithoutState);
+      return score + cellScoreInBoard;
     }
   }
 }
