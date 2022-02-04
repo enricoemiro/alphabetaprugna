@@ -323,7 +323,6 @@ final public class Player implements MNKPlayer {
 
   /**
    * Given the board, sort the free cells as follows:
-   * - my moves ∩ opponent moves
    * - my moves
    * - opponent moves
    * - all the others
@@ -345,40 +344,29 @@ final public class Player implements MNKPlayer {
     List<MNKCell> mySortedCells = sortCellsInCircularWay(myLastMarkedCell, FC.size());
     List<MNKCell> opponentSortedCells = sortCellsInCircularWay(opponentLastMarkedCell, FC.size());
 
-    List<MNKCell> sortedFreeCellsList = new ArrayList<MNKCell>();
-
-    // Intersection between mySortedCells and opponentSortedCells
-    List<MNKCell> intersection = new ArrayList<>();
-
-    // We look for the common elements between
-    // mysortedCells and opponentsSortedCells
-    // and insert them in itersection
-    for (MNKCell cell: mySortedCells) {
-      if (mySortedCells.contains(cell) && opponentSortedCells.contains(cell))
-        intersection.add(cell);
-    }
-    sortedFreeCellsList.addAll(intersection);
+    List<MNKCell> sortedFreeCells = new ArrayList<MNKCell>();
 
     // We put the remaining elements
-    // of mySortedCells in sortedFreeCellsList
+    // of mySortedCells in sortedFreeCells
     for (MNKCell cell : mySortedCells) {
-      if (!sortedFreeCellsList.contains(cell))
-        sortedFreeCellsList.add(cell);
+      if (!sortedFreeCells.contains(cell))
+        sortedFreeCells.add(cell);
     }
 
     // We put the remaining elements of opponentSortedCells
-    // in sortedFreeCellsList
+    // in sortedFreeCells
     for (MNKCell cell : opponentSortedCells) {
-      if (!sortedFreeCellsList.contains(cell))
-        sortedFreeCellsList.add(cell);
+      if (!sortedFreeCells.contains(cell))
+        sortedFreeCells.add(cell);
     }
 
     // merge remaining free cells
     for (MNKCell cell: FC) {
-      if (!sortedFreeCellsList.contains(cell)) sortedFreeCellsList.add(cell);
+      if (!sortedFreeCells.contains(cell))
+        sortedFreeCells.add(cell);
     }
 
-    return sortedFreeCellsList.toArray(new MNKCell[0]);
+    return sortedFreeCells.toArray(new MNKCell[0]);
   }
 
   /**
