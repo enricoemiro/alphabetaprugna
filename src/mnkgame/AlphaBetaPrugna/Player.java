@@ -106,7 +106,7 @@ final public class Player implements MNKPlayer {
         left++;
       }
 
-      if (direction == 3) score++;
+      if (direction == 3) score = score * 10;
       direction = (direction + 1) % 4;
     }
   }
@@ -454,11 +454,11 @@ final public class Player implements MNKPlayer {
       if (!hasTouchedEnemyCell && hasEnteredInCycle)
         score += 1;
 
-      score = numberOfConsecutiveCells >= board.K - 2
-        ? score + numberOfConsecutiveCells
-        : score;
+      // score = numberOfConsecutiveCells >= board.K - 2
+      //   ? score + numberOfConsecutiveCells
+      //   : score;
 
-      return score;
+      return score + series(numberOfConsecutiveCells);
     }
 
     public long evalCell() {
@@ -470,6 +470,26 @@ final public class Player implements MNKPlayer {
       MNKCell startCellWithoutState = new MNKCell(this.startCell.i, this.startCell.j);
       int cellScoreInBoard = boardScores.get(startCellWithoutState);
       return score + cellScoreInBoard;
+    }
+
+    /**
+     *
+     *
+     * @param numberOfConsecutiveCells
+     * @return
+     */
+    private int series(int numberOfConsecutiveCells) {
+      int K = board.K;
+
+      if (K > 2 && numberOfConsecutiveCells == K - 1) {
+        return 100_000;
+      } else if (K > 3 && numberOfConsecutiveCells == K - 2) {
+        return 100;
+      } else if (K > 4 && numberOfConsecutiveCells == K - 3) {
+        return 10;
+      }
+
+      return 0;
     }
   }
 }
