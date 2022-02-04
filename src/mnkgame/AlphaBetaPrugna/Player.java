@@ -21,7 +21,7 @@ final public class Player implements MNKPlayer {
   private double startTime, maxSearchingTime;
   private Map<MNKCell, Integer> boardScores;
 
-  private static final double SAFETY_THRESHOLD = 0.95;
+  private static final double SAFETY_THRESHOLD = 0.99;
   private static final int SAFETY_HALT = Integer.MAX_VALUE / 2;
   private static final int INFINITY_POSITIVE = Integer.MAX_VALUE;
   private static final int INFINITY_NEGATIVE = Integer.MIN_VALUE;
@@ -106,7 +106,7 @@ final public class Player implements MNKPlayer {
         left++;
       }
 
-      if (direction == 3) score = score * 10;
+      if (direction == 3) score = score * 100;
       direction = (direction + 1) % 4;
     }
   }
@@ -253,17 +253,10 @@ final public class Player implements MNKPlayer {
     else if (state.equals(opponentWinState)) return LOSING_SCORE + depth;
     else if (state.equals(MNKGameState.DRAW)) return DRAWING_SCORE + depth;
 
-    int myEval = (int) new Eval(board.getLastMarkedCell()).evalCell();
+    int myEval = (int) new Eval(board.getLastMarkedCell(myCellState)).evalCell();
+    int opponentEval = (int) new Eval(board.getLastMarkedCell(opponentCellState)).evalCell();
 
-//    MNKCellState spaghettiCode = board.getLastMarkedCell().state == myCellState
-//          ? opponentCellState : myCellState;
-//
-//     MNKCell prova = new MNKCell(board.getLastMarkedCell().i,
-//     board.getLastMarkedCell().j, spaghettiCode);
-//
-//     int opponentEval = (int) new Eval(prova).evalCell();
-//
-      return myEval + depth; // + opponentEval;
+    return myEval - opponentEval + depth;
   }
 
   /**
