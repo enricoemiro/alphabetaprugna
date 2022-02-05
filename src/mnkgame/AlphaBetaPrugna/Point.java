@@ -13,4 +13,10 @@ public class Point {
     this.x = point.x;
     this.y = point.y;
   }
+
+  public Point multiply(int scalar) {
+    this.x *= scalar;
+    this.y *= scalar;
+    return this;
+  }
 }

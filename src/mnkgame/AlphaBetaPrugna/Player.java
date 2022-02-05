@@ -253,8 +253,8 @@ final public class Player implements MNKPlayer {
     else if (state.equals(opponentWinState)) return LOSING_SCORE + depth;
     else if (state.equals(MNKGameState.DRAW)) return DRAWING_SCORE + depth;
 
-    int myEval = (int) new Eval(board.getLastMarkedCell(myCellState)).evalCell();
-    int opponentEval = (int) new Eval(board.getLastMarkedCell(opponentCellState)).evalCell();
+    int myEval = new CircularEval(board.getLastMarkedCell(myCellState)).eval();
+    int opponentEval = new CircularEval(board.getLastMarkedCell(opponentCellState)).eval();
 
     return myEval - opponentEval + depth;
   }
@@ -377,25 +377,138 @@ final public class Player implements MNKPlayer {
     return elapsedTime > this.maxSearchingTime;
   }
 
-  final public class Eval {
+  final public class CircularEval {
     private MNKCell startCell;
 
-    public Eval(MNKCell startCell) {
+    public CircularEval(MNKCell startCell) {
       this.startCell = startCell;
     }
 
     /**
-     * PROBLEMI:
-     * - celle ai limiti bisogna considerarle come possibili linee vincenti
-     * altrimenti si sballano i calcoli
      *
+     */
+    public int eval() {
+      int score = this.caseX(this.startCell) + this.casePlus(startCell);
+
+      for (var direction : directions.entrySet()) {
+        Point point = direction.getValue().point.multiply(1);
+        MNKCell cell = cellNullOrExists(this.startCell, point);
+        if (cell == null) continue;
+
+        score += this.caseX(cell) + this.casePlus(cell);
+      }
+
+      MNKCell startCellWithoutState = new MNKCell(this.startCell.i, this.startCell.j);
+      int cellScoreInBoard = boardScores.get(startCellWithoutState);
+      return score + cellScoreInBoard;
+    }
+
+    /**
+     * Check if there are possible forks or series
+     * and assign a score to each of them
+     *
+     * @return
+     */
+    private int caseX(MNKCell startCell) {
+      int score = 0;
+      List<Direction> xDirectionsAsList = new ArrayList<>(Direction.getXDirections().values());
+      List<MNKCell> xCellsAsList = new ArrayList<>(xDirectionsAsList.size());
+
+      // Valutiamo le 4 celle singolarmente
+      for (int i = 0; i < xDirectionsAsList.size(); i++) {
+        MNKCell cell = cellNullOrExists(startCell, xDirectionsAsList.get(i).point);
+        if (cell != null) {
+          xCellsAsList.add(cell);
+          if (cell.state == startCell.state) score += 1;
+        }
+      }
+
+      // Fissata una cella controlliamo le altre nelle direzioni restanti
+      for (int i = 0; i < xCellsAsList.size(); i++) {
+        MNKCell fixedCell = xCellsAsList.get(i);
+
+        for (int j = i + 1; j < xDirectionsAsList.size(); j++) {
+          MNKCell cell = cellNullOrExists(startCell, xDirectionsAsList.get(j).point);
+          if (cell == null) continue;
+
+          // Controlliamo se vi è una possibile fork
+          if (startCell.state == fixedCell.state &&
+              startCell.state == cell.state) {
+
+            // Se fixedCell e cell si trovano nella diagonale  significa
+            // che hanno già creato una fork, quindi il punteggio assegnato
+            // deve essere più alto.
+            if (fixedCell.i != cell.i && fixedCell.j != cell.j) {
+              score += 20;
+            } else {
+              score += 5;
+            }
+          }
+        }
+      }
+
+      return score;
+    }
+
+    /**
+     *
+     * @return
+     */
+    private int casePlus(MNKCell startCell) {
+      int score = 0;
+      List<Direction> xDirectionsAsList = new ArrayList<>(Direction.getPlusDirections().values());
+      List<MNKCell> xCellsAsList = new ArrayList<>(xDirectionsAsList.size());
+
+      // Valutiamo le 4 celle singolarmente
+      for (int i = 0; i < xDirectionsAsList.size(); i++) {
+        MNKCell cell = cellNullOrExists(startCell, xDirectionsAsList.get(i).point);
+        if (cell != null) {
+          xCellsAsList.add(cell);
+
+          if (cell.state == startCell.state) score += 1;
+        }
+      }
+
+      // Fissata una cella controlliamo le altre nelle direzioni restanti
+      for (int i = 0; i < xCellsAsList.size(); i++) {
+        MNKCell fixedCell = xCellsAsList.get(i);
+
+        for (int j = i + 1; j < xDirectionsAsList.size(); j++) {
+          MNKCell cell = cellNullOrExists(startCell, xDirectionsAsList.get(j).point);
+          if (cell == null) continue;
+
+          // Controlliamo se vi è una possibile fork
+          if (startCell.state == fixedCell.state &&
+              startCell.state == cell.state) {
+
+            // Se fixedCell e cell si trovano in colonna oppure in riga significa
+            // che hanno già creato una fork, quindi il punteggio assegnato
+            // deve essere più alto.
+            System.out.println(fixedCell == cell);
+            if (fixedCell.i == cell.i || fixedCell.j == cell.j) {
+              score += 20;
+
+            // In questo caso hanno creato una combinazione ad L, ciò significa
+            // che abbiamo la possibilità di creare almeno una delle due fork
+            // disponibili al turno successivo
+            } else {
+              score += 10;
+            }
+          }
+        }
+      }
+
+      return score;
+    }
+
+    /**
      *
      *
      * @param direction
      * @return The score of a k-line of cells in the input direction
      */
-    private long evalDirection(Direction direction) {
-      long score = 0;
+    private int evalDirection(Direction direction) {
+      int score = 0;
       int numberOfConsecutiveCells = 0;
       Point point = direction.point;
       boolean hasTouchedEnemyCell = false;
@@ -413,37 +526,179 @@ final public class Player implements MNKPlayer {
         int x = startCell.i + point.x * i;
         int y = startCell.j + point.y * i;
 
+        // Se la cella è fuori dai limiti della board per il valore di
+        // "i" corrente lo sarà sicuramente anche per i successivi,
+        // dunque possiamo uscire dal ciclo.
         if (!board.isCellInBounds(x, y)) break;
 
         hasEnteredInCycle = true;
+
+        // Creiamo la nuova cella nelle coordinate in cui ci siamo
+        // spostati e ne prendiamo lo stato dalla board.
         MNKCell cell = new MNKCell(x, y, board.cellState(x, y));
         boolean isStartCellState = cell.state == this.startCell.state;
         boolean isFreeCellState = cell.state == MNKCellState.FREE;
 
+        // Se la nuova cella è stata già marcata da noi,
+        // aumentiamo lo score perchè vogliamo dare priorità alle serie.
         if (isStartCellState) {
           score += 1;
 
-          if (!hasTouchedFreeCell) numberOfConsecutiveCells++;
-        } else if (isFreeCellState) {
+          // Se non ha ancora toccato una cella libera
+          // vuol dire che abbiamo una serie di celle consecutive
+          // e quindi incrementiamo "numberOfConsecutiveCells".
+          if (!hasTouchedFreeCell)
+            numberOfConsecutiveCells++;
+        }
+
+        // Se incontriamo una cella libera settiamo hasTouchedFreeCell a true
+        if (isFreeCellState)
           hasTouchedFreeCell = true;
-        } else {
+
+        // Appena incontriamo una cella avversaria,
+        // dobbiamo uscire dal ciclo.
+        if (!isFreeCellState && !isStartCellState) {
           hasTouchedEnemyCell = true;
           break;
         }
       }
 
-      if (!hasTouchedEnemyCell && hasEnteredInCycle)
-        score += 1;
-
-      // score = numberOfConsecutiveCells >= board.K - 2
-      //   ? score + numberOfConsecutiveCells
-      //   : score;
+      // Se alla fine del ciclo non abbiamo incontrato celle nemiche
+      // allora incrementiamo lo score
+      if (!hasTouchedEnemyCell && hasEnteredInCycle) score += 1;
 
       return score + series(numberOfConsecutiveCells);
     }
 
-    public long evalCell() {
-      long score = 0;
+    public int evalCell() {
+      int score = 0;
+
+      for (var direction : directions.entrySet())
+        score += this.evalDirection(direction.getValue());
+
+      return score;
+    }
+
+    /**
+     *
+     *
+     * @param numberOfConsecutiveCells
+     * @return
+     */
+    private int series(int numberOfConsecutiveCells) {
+      int K = board.K;
+
+      if (K > 2 && numberOfConsecutiveCells == K - 1) {
+        return 25;
+      } else if (K > 3 && numberOfConsecutiveCells == K - 2) {
+        return 15;
+      } else if (K > 4 && numberOfConsecutiveCells == K - 3) {
+        return 5;
+      }
+
+      return 0;
+    }
+
+    /**
+     * Check if the cell in the input direction exists or
+     * is out of bounds.
+     *
+     * @param cell
+     * @param point
+     * @return
+     */
+    private MNKCell cellNullOrExists(MNKCell cell, Point point) {
+      int i = cell.i + point.x;
+      int j = cell.j + point.y;
+
+      if (!board.isCellInBounds(i, j)) return null;
+
+      MNKCellState cellState = board.cellState(i, j);
+
+      return new MNKCell(i, j, cellState);
+    }
+  }
+
+  final public class Eval {
+    private MNKCell startCell;
+
+    public Eval(MNKCell startCell) {
+      this.startCell = startCell;
+    }
+
+
+
+    /**
+     *
+     *
+     * @param direction
+     * @return The score of a k-line of cells in the input direction
+     */
+    private int evalDirection(Direction direction) {
+      int score = 0;
+      int numberOfConsecutiveCells = 0;
+      Point point = direction.point;
+      boolean hasTouchedEnemyCell = false;
+      boolean hasTouchedFreeCell = false;
+
+      // viene settata a true quando siamo sicuri che la cella non è fuori
+      // dalla Board alla prima iterazione. In questo modo evitiamo che venga
+      // assegnato
+      // uno score a una cella non raggiungibile.
+      // Dobbiamo controllarlo prima di creare la cella perchè non si può
+      // cambiare lo stato di una cella.
+      boolean hasEnteredInCycle = false;
+
+      for (int i = 1; i <= board.K; i++) {
+        int x = startCell.i + point.x * i;
+        int y = startCell.j + point.y * i;
+
+        // Se la cella è fuori dai limiti della board per il valore di
+        // "i" corrente lo sarà sicuramente anche per i successivi,
+        // dunque possiamo uscire dal ciclo.
+        if (!board.isCellInBounds(x, y)) break;
+
+        hasEnteredInCycle = true;
+
+        // Creiamo la nuova cella nelle coordinate in cui ci siamo
+        // spostati e ne prendiamo lo stato dalla board.
+        MNKCell cell = new MNKCell(x, y, board.cellState(x, y));
+        boolean isStartCellState = cell.state == this.startCell.state;
+        boolean isFreeCellState = cell.state == MNKCellState.FREE;
+
+        // Se la nuova cella è stata già marcata da noi,
+        // aumentiamo lo score perchè vogliamo dare priorità alle serie.
+        if (isStartCellState) {
+          score += 1;
+
+          // Se non ha ancora toccato una cella libera
+          // vuol dire che abbiamo una serie di celle consecutive
+          // e quindi incrementiamo "numberOfConsecutiveCells".
+          if (!hasTouchedFreeCell)
+            numberOfConsecutiveCells++;
+        }
+
+        // Se incontriamo una cella libera settiamo hasTouchedFreeCell a true
+        if (isFreeCellState)
+          hasTouchedFreeCell = true;
+
+        // Appena incontriamo una cella avversaria,
+        // dobbiamo uscire dal ciclo.
+        if (!isFreeCellState && !isStartCellState) {
+          hasTouchedEnemyCell = true;
+          break;
+        }
+      }
+
+      // Se alla fine del ciclo non abbiamo incontrato celle nemiche
+      // allora incrementiamo lo score
+      if (!hasTouchedEnemyCell && hasEnteredInCycle) score += 1;
+
+      return score + series(numberOfConsecutiveCells);
+    }
+
+    public int evalCell() {
+      int score = 0;
 
       for (var direction : directions.entrySet())
         score += this.evalDirection(direction.getValue());

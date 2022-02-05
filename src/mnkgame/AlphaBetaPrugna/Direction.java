@@ -1,5 +1,6 @@
 package mnkgame.AlphaBetaPrugna;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 
 public class Direction {
@@ -34,4 +35,30 @@ public class Direction {
       }
     };
   }
+
+  public static LinkedHashMap<String, Direction> getXDirections() {
+    return new LinkedHashMap<String, Direction>() {
+      {
+        put("up-left", new Direction(new Point(-1, -1)));
+        put("up-right", new Direction(new Point(1, -1)));
+        put("down-right", new Direction(new Point(1, 1)));
+        put("down-left", new Direction(new Point(-1, 1)));
+      }
+    };
+  }
+
+  /**
+   * @return directions for the + case
+   */
+  public static LinkedHashMap<String, Direction> getPlusDirections() {
+    return new LinkedHashMap<String, Direction>() {
+      {
+      put("up", new Direction(new Point(0, -1)));
+      put("right", new Direction(new Point(1, 0)));
+      put("down", new Direction(new Point(0, 1)));
+      put("left", new Direction(new Point(-1, 0)));
+      }
+    };
+  }
+
 }

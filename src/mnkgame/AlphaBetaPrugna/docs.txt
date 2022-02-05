@@ -1,0 +1,17 @@
+     * TODO: per valutare dal punto di vista del nemico non dobbiamo
+     * eseguire eval sulla last marked cell cambiandone lo stato perchè
+     * è come se valutassimo una situazione in cui il player precedente
+     * alla last marked cell ha fatto due mosse consecutive.
+     * Quello che dobbiamo fare è valutare la last marked cell
+     * con il suo stato e controllare nelle varie direzioni
+     * serie e possibilità rispetto allo stato del nemico.
+
+  /**
+   * Esegue una ricerca in ampiezza della board
+   * di gioco aumentando la profondità
+   * di ricerca dell'AlphaBetaPruning a ogni iterazione
+   * finche non ci sono rischi di timeout.
+   *
+   * @param Board
+   *
+   */
