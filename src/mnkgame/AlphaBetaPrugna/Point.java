@@ -19,4 +19,8 @@ public class Point {
     this.y *= scalar;
     return this;
   }
+
+  public String toString() {
+    return String.format("(%d, %d)", x, y);
+  }
 }
