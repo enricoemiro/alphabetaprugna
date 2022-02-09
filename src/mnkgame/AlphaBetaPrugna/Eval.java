@@ -12,6 +12,10 @@ public class Eval {
   private MNKCellState startCellState;
   private MNKCellState opponentCellState;
 
+  private static int KMINUSONE = 100;
+  private static int KMINUSTWO = 30;
+  private static int KMINUSTHIRD = 15;
+
   public Eval(Board board, MNKCell startCell) {
     this.board = board;
     this.startCell = startCell;
@@ -121,12 +125,9 @@ public class Eval {
      */
     public int evalUnion(SideDirection other) {
       int totalConsecutiveAlignments = 1 + this.consecutiveAlignments +
-                                       other.consecutiveAlignments;
+                                           other.consecutiveAlignments;
 
-      int increaser = evalIncreaser(other);
-      // if (stateToMatch == startCellState) totalConsecutiveAlignments += 1;
-
-      return increaser + evalConsecutiveAlignments(totalConsecutiveAlignments);
+      return evalIncreaser(other) + evalConsecutiveAlignments(totalConsecutiveAlignments);
     }
 
     /**
@@ -207,7 +208,7 @@ public class Eval {
 
       if (areSideNotNull) {
         boolean isFirstSideFree = this.sideCellEnd.state == MNKCellState.FREE;
-        boolean isSecondStateFree = this.sideCellEnd.state == MNKCellState.FREE;
+        boolean isSecondStateFree = other.sideCellEnd.state == MNKCellState.FREE;
 
         return (!isFirstSideFree && isSecondStateFree) ||
                (isFirstSideFree && !isSecondStateFree);
@@ -229,7 +230,7 @@ public class Eval {
 
       if (areSideNotNull) {
         boolean isFirstSideFree = this.sideCellEnd.state == MNKCellState.FREE;
-        boolean isSecondStateFree = this.sideCellEnd.state == MNKCellState.FREE;
+        boolean isSecondStateFree = other.sideCellEnd.state == MNKCellState.FREE;
 
         return isFirstSideFree && isSecondStateFree;
       }
@@ -272,9 +273,9 @@ public class Eval {
     private int evalConsecutiveAlignments(int consecutiveAlignments) {
       int K = board.K;
 
-      if (K > 2 && consecutiveAlignments == K - 1) return 1000;
-      else if (K > 3 && consecutiveAlignments == K - 2) return 100;
-      else if (K > 4 && consecutiveAlignments == K - 3) return 10;
+      if (K > 2 && consecutiveAlignments == K - 1) return KMINUSONE;
+      else if (K > 3 && consecutiveAlignments == K - 2) return KMINUSTWO;
+      else if (K > 4 && consecutiveAlignments == K - 3) return KMINUSTHIRD;
 
       return 0;
     }
