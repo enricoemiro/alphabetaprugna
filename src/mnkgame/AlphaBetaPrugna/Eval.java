@@ -272,9 +272,9 @@ public class Eval {
     private int evalConsecutiveAlignments(int consecutiveAlignments) {
       int K = board.K;
 
-      if (K > 2 && consecutiveAlignments == K - 1) return 100;
-      else if (K > 3 && consecutiveAlignments == K - 2) return 10;
-      else if (K > 4 && consecutiveAlignments == K - 3) return 1;
+      if (K > 2 && consecutiveAlignments == K - 1) return 1000;
+      else if (K > 3 && consecutiveAlignments == K - 2) return 100;
+      else if (K > 4 && consecutiveAlignments == K - 3) return 10;
 
       return 0;
     }
