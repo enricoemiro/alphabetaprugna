@@ -19,10 +19,11 @@ HELP_USAGE
 }
 
 function run_match {
-  match_dir="$test_dir/$4/$5"
+  match_dir="$test_dir/$4-$5"
   echo $(mkdir -p $match_dir)
 
   output_file="$match_dir/$1-$2-$3-$(date +%s).txt"
+  echo "Configuration match: M=$M N=$N K=$K $4 vs $5"
   echo $(cd $build_dir &&
          java -cp '..' mnkgame.MNKPlayerTester $1 $2 $3 $4 $5 -r $6) > $output_file
 }
@@ -34,7 +35,7 @@ function command {
   opponent="${4:-$default_opponent}"
   rounds="${5:-2}"
 
-  run_match $M $N $K $default_my "mnkgame.$opponent" $rounds
+  run_match $M $N $K $default_my "mnkgame.$opponent" $rounds &
   run_match $M $N $K "mnkgame.$opponent" $default_my $rounds
 }
 
