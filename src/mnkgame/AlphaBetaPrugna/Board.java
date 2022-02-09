@@ -12,7 +12,7 @@ import mnkgame.MNKGameState;
 
 final public class Board extends MNKBoard {
   private Random random;
-  private ZobristHash zobrist;
+  public ZobristHash zobrist;
 
   public long hash;
   public Map<MNKCell, Integer> scores = new LinkedHashMap<>();

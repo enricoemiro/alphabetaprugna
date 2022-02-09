@@ -20,13 +20,15 @@ import mnkgame.AlphaBetaPrugna.TTEntry.Flag;
 
 final public class Player implements MNKPlayer {
   private Board board;
-  private double timeoutInMillis;
+  private long timeoutInMillis;
+  private boolean first;
   private MNKGameState myWinState, opponentWinState;
   private MNKCellState myCellState, opponentCellState;
-  private double startTime, maxSearchingTime;
+  private long startTime, maxSearchingTime;
   private Map<Long, TTEntry> transpositionTable;
+  private Thread transpositionTableCleaner;
 
-  private static final double SAFETY_THRESHOLD = 0.99;
+  private static final int SAFETY_THRESHOLD = 95;
   private static final int SAFETY_HALT = Integer.MAX_VALUE / 2;
   private static final int INFINITY_POSITIVE = Integer.MAX_VALUE;
   private static final int INFINITY_NEGATIVE = Integer.MIN_VALUE;
@@ -44,15 +46,16 @@ final public class Player implements MNKPlayer {
   @Override
   public void initPlayer(int M, int N, int K, boolean first, int timeoutInSecs) {
     this.board = new Board(M, N, K);
-    this.timeoutInMillis = (double) timeoutInSecs * 1000;
+    this.timeoutInMillis = timeoutInSecs * 1000;
 
+    this.first = first;
     this.myWinState = first ? MNKGameState.WINP1 : MNKGameState.WINP2;
     this.opponentWinState = first ? MNKGameState.WINP2 : MNKGameState.WINP1;
 
     this.myCellState = first ? MNKCellState.P1 : MNKCellState.P2;
     this.opponentCellState = first ? MNKCellState.P2 : MNKCellState.P1;
 
-    this.maxSearchingTime = this.timeoutInMillis * SAFETY_THRESHOLD;
+    this.maxSearchingTime = (this.timeoutInMillis * SAFETY_THRESHOLD) / 100;
 
     this.transpositionTable = new HashMap<>();
 
@@ -69,6 +72,14 @@ final public class Player implements MNKPlayer {
   @Override
   public MNKCell selectCell(MNKCell[] FC, MNKCell[] MC) {
     this.startTime = System.currentTimeMillis();
+
+    // Stop the thread that (if it) was in background
+    if (transpositionTableCleaner != null &&
+        transpositionTableCleaner.isAlive()) {
+        transpositionTableCleaner.interrupt();
+        transpositionTableCleaner = null;
+    }
+    // System.out.println(transpositionTable.size());
 
     // Last available move
     if (FC.length == 1)
@@ -100,6 +111,11 @@ final public class Player implements MNKPlayer {
     }
     board.markCell(bestCell);
 
+    // Start thread in background for cleaning the
+    // transposition table
+    transpositionTableCleaner = new Thread(new TTCleaner(), "TT Cleaner");
+    transpositionTableCleaner.start();
+
     return bestCell;
   }
 
@@ -109,6 +125,22 @@ final public class Player implements MNKPlayer {
   @Override
   public String playerName() {
     return "GEmirator";
+  }
+
+  /**
+   *
+   */
+  private class TTCleaner implements Runnable {
+    public void run() {
+      long hash = 0;
+
+      for (MNKCell cell : board.getMarkedCells()) {
+        hash = board.zobrist.updateZobrist(hash, cell);
+
+        TTEntry ttEntry = transpositionTable.get(hash);
+        if (ttEntry != null) transpositionTable.remove(hash);
+      }
+    }
   }
 
   /**
@@ -256,15 +288,33 @@ final public class Player implements MNKPlayer {
   private int eval(Board board, int depth) {
     MNKGameState state = board.gameState();
 
-    if (state.equals(myWinState)) return WINNING_SCORE + depth;
-    else if (state.equals(opponentWinState)) return LOSING_SCORE + depth;
-    else if (state.equals(MNKGameState.DRAW)) return DRAWING_SCORE + depth;
+    // Se siamo primi abbiamo 1 mossa di vantaggio, dunque
+    // conviene verificare se lo state della board
+    if (first) {
+      if (state.equals(myWinState)) return WINNING_SCORE + depth;
+      else if (state.equals(opponentWinState)) return LOSING_SCORE - depth;
+    } else {
+      if (state.equals(opponentWinState)) return LOSING_SCORE - depth;
+      else if (state.equals(myWinState)) return WINNING_SCORE + depth;
+    }
+
+    // if (state.equals(myWinState)) return WINNING_SCORE + depth;
+    // else if (state.equals(opponentWinState)) return LOSING_SCORE + depth;
+    if (state.equals(MNKGameState.DRAW)) return DRAWING_SCORE + depth;
 
     MNKCell lastMarked = board.getLastMarkedCell();
     int evalLastMarked = new Eval(board, lastMarked).eval();
 
-    return lastMarked.state == myCellState ? evalLastMarked + depth
-                                           : -evalLastMarked - depth;
+    if (first)
+      return lastMarked.state == myCellState ? evalLastMarked + depth
+                                             : -evalLastMarked - depth;
+    else
+      return lastMarked.state == myCellState ? -evalLastMarked - depth
+                                             : +evalLastMarked + depth;
+
+    // return first ? evalLastMarked + depth : -evalLastMarked - depth;
+    // return lastMarked.state == myCellState ? -evalLastMarked - depth
+    //                                        : +evalLastMarked + depth;
   }
 
   /**
