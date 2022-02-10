@@ -12,51 +12,64 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import mnkgame.AlphaBetaPrugna.TTEntry.Flag;
 import mnkgame.MNKCell;
 import mnkgame.MNKCellState;
 import mnkgame.MNKGameState;
 import mnkgame.MNKPlayer;
-import mnkgame.AlphaBetaPrugna.TTEntry.Flag;
 
 final public class Player implements MNKPlayer {
+  /** Local board. */
   private Board board;
+  /** Timeout converted from seconds to milliseconds. */
   private long timeoutInMillis;
+  /** We are first player or not. */
   private boolean first;
+  /** Game State of our and opponent player. */
   private MNKGameState myWinState, opponentWinState;
+  /** Cell State of our and opponent player. */
   private MNKCellState myCellState, opponentCellState;
-  private long startTime, maxSearchingTime;
+  /** Instant of the start of our round. */
+  private long startTime;
+  /** Max time for searchin the best move. */
+  private long maxSearchingTime;
+  /** Transposition table to mantain visited configurations. */
   private Map<Long, TTEntry> transpositionTable;
+  /** Thread where execute cleanup. */
   private Thread transpositionTableCleaner;
 
+  /** A safety limit to exit from Alpha-beta before the end of the round. */
   private static final int SAFETY_THRESHOLD = 95;
+  /** A default value to return in Alpha-beta if time is finishing. */
   private static final int SAFETY_HALT = Integer.MAX_VALUE / 2;
+  /** Upper bound value of Alpha-beta. */
   private static final int INFINITY_POSITIVE = Integer.MAX_VALUE;
+  /** Lower bound value of Alpha-beta. */
   private static final int INFINITY_NEGATIVE = Integer.MIN_VALUE;
+  /** Score associated to win configuration. */
   private static final int WINNING_SCORE = 100_000_000;
+  /** Score associated to losing configuration. */
   private static final int LOSING_SCORE = -WINNING_SCORE;
+  /** Score associated to draw configuration. */
   private static final int DRAWING_SCORE = 0;
 
   /** Default empty constructor */
-  public Player() {
-  }
+  public Player() {}
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public void initPlayer(int M, int N, int K, boolean first, int timeoutInSecs) {
+  public void initPlayer(
+          int M, int N, int K, boolean first, int timeoutInSecs) {
+    this.first = first;
     this.board = new Board(M, N, K);
     this.timeoutInMillis = timeoutInSecs * 1000;
-
-    this.first = first;
     this.myWinState = first ? MNKGameState.WINP1 : MNKGameState.WINP2;
     this.opponentWinState = first ? MNKGameState.WINP2 : MNKGameState.WINP1;
-
     this.myCellState = first ? MNKCellState.P1 : MNKCellState.P2;
     this.opponentCellState = first ? MNKCellState.P2 : MNKCellState.P1;
-
     this.maxSearchingTime = (this.timeoutInMillis * SAFETY_THRESHOLD) / 100;
-
     this.transpositionTable = new HashMap<>();
 
     // for (var boardScore : this.board.scores.entrySet()) {
@@ -74,16 +87,14 @@ final public class Player implements MNKPlayer {
     this.startTime = System.currentTimeMillis();
 
     // Stop the thread that (if it) was in background
-    if (transpositionTableCleaner != null &&
-        transpositionTableCleaner.isAlive()) {
-        transpositionTableCleaner.interrupt();
-        transpositionTableCleaner = null;
+    if (transpositionTableCleaner != null
+            && transpositionTableCleaner.isAlive()) {
+      transpositionTableCleaner.interrupt();
+      transpositionTableCleaner = null;
     }
-    // System.out.println(transpositionTable.size());
 
     // Last available move
-    if (FC.length == 1)
-      return FC[0];
+    if (FC.length == 1) return FC[0];
 
     // If we have the first move, we choose the middle cell
     if (MC.length == 0) {
@@ -96,20 +107,25 @@ final public class Player implements MNKPlayer {
     if (MC.length > 0) {
       MNKCell lastMarkedCell = MC[MC.length - 1];
       board.markCell(lastMarkedCell);
+
+      if (MC.length == 1 && board.M == board.N) {
+        if (lastMarkedCell.i != board.M / 2
+                && lastMarkedCell.j != board.N / 2) {
+          MNKCell cell = new MNKCell(board.M / 2, board.N / 2);
+          board.markCell(cell);
+          return cell;
+        }
+      }
     }
 
-    // AlphaBeta algorithm to found the best cell
     MNKCell bestCell = iterativeDeepening(board);
-    if (bestCell == null) {
-      System.out.println("Player: random move in select cell");
-      //for (var entry : transpositionTable.entrySet()) {
-      //  System.out.format("Board hash: %d ---- %s\n",
-      //                     entry.getKey(),
-      //                     entry.getValue().toString());
-      //}
-      bestCell = board.pickRandomCell();
-    }
+    if (bestCell == null) bestCell = board.pickRandomCell();
     board.markCell(bestCell);
+
+    // for (var entry : transpositionTable.entrySet()) {
+    //   System.out.format("Board hash: %d ---- %s\n",
+    //                      entry.getKey(),
+    //                      entry.getValue().toString());
 
     // Start thread in background for cleaning the
     // transposition table
@@ -124,16 +140,19 @@ final public class Player implements MNKPlayer {
    */
   @Override
   public String playerName() {
-    return "GEmirator";
+    return "AlphaBetaPrugna";
   }
 
   /**
-   *
+   * Class that implements a Runnable object for the
+   * transposition cleanup thread.
    */
   private class TTCleaner implements Runnable {
+    @Override
     public void run() {
       long hash = 0;
 
+      // Remove from transposition table useless configurations
       for (MNKCell cell : board.getMarkedCells()) {
         hash = board.zobrist.updateZobrist(hash, cell);
 
@@ -144,14 +163,13 @@ final public class Player implements MNKPlayer {
   }
 
   /**
+   * Calls alpha beta by increasing the depth until the time runs out.
    *
-   *
-   * @param board Board to evaluate
-   * @return The best cell move
+   * @param board board to evaluate
+   * @return best cell move
    */
-  public MNKCell iterativeDeepening(Board board) {
+  private MNKCell iterativeDeepening(Board board) {
     MNKCell bestCell = null;
-    int bestScore = 0;
 
     for (int depth = 1; depth <= board.getFreeCells().length; depth++) {
       List<Object> values = alphaBetaAtRoot(board, depth);
@@ -160,16 +178,6 @@ final public class Player implements MNKPlayer {
 
       if (isTimeFinishing() || score == SAFETY_HALT) break;
 
-//      if (score >= bestScore) {
-//        System.out.format("old: bestScore: %d - bestCell: %s\n"
-//            + "new: bestScore: %d - bestCell: %s\n"
-//            + "depth: %d\n",
-//            bestScore, bestCell, score, cell, depth);
-//
-//        bestScore = score;
-//        bestCell = cell;
-//      }
-      bestScore = score;
       bestCell = cell;
     }
 
@@ -177,20 +185,21 @@ final public class Player implements MNKPlayer {
   }
 
   /**
+   * Alpha-beta execution on the root of the game tree.
    *
-   * @param board
-   * @param depth
-   * @return
+   * @param board board to evaluate
+   * @param depth max reachable depth
+   * @return list containing bestCell with its bestScore
    */
-  public List<Object> alphaBetaAtRoot(Board board, int depth) {
+  private List<Object> alphaBetaAtRoot(Board board, int depth) {
     MNKCell bestCell = null;
     int bestScore = INFINITY_NEGATIVE;
 
     MNKCell[] sortedMoves = sortMoves(board);
-
     for (MNKCell cell : sortedMoves) {
       board.markCell(cell);
-      int score = alphaBetaWithMemory(board, depth, INFINITY_NEGATIVE, INFINITY_POSITIVE, false);
+      int score = alphaBetaWithMemory(
+              board, depth, INFINITY_NEGATIVE, INFINITY_POSITIVE, false);
       board.unmarkCell();
 
       if (isTimeFinishing() || score == SAFETY_HALT) break;
@@ -204,18 +213,31 @@ final public class Player implements MNKPlayer {
     return Arrays.asList(bestCell, bestScore);
   }
 
-  private int alphaBetaWithMemory(Board board, int depth, int alpha, int beta,
-                                  boolean isMaximizing) {
+  /**
+   * Implements AlphaBeta algorithm with transposition table.
+   *
+   * @param board board to evaluate
+   * @param depth max reachable depth
+   * @param alpha lower bound value
+   * @param beta upper bound value
+   * @param isMaximizing true if is a maximizing node, false otherwise
+   * @return best evaluated score
+   */
+  private int alphaBetaWithMemory(
+          Board board, int depth, int alpha, int beta, boolean isMaximizing) {
     int alphaOrig = alpha;
 
     /**
-     * Transposition table lookup
+     * Transposition table lookup.
      */
     TTEntry entry = transpositionTable.getOrDefault(board.hash, null);
     if (entry != null && entry.depth >= depth) {
-      if (entry.flag == Flag.EXACT) return entry.score;
-      else if (entry.flag == Flag.ALPHA) alpha = Math.max(alpha, entry.score);
-      else if (entry.flag == Flag.BETA) beta = Math.min(beta, entry.score);
+      if (entry.flag == Flag.EXACT)
+        return entry.score;
+      else if (entry.flag == Flag.ALPHA)
+        alpha = Math.max(alpha, entry.score);
+      else if (entry.flag == Flag.BETA)
+        beta = Math.min(beta, entry.score);
       if (alpha >= beta) return entry.score;
     }
 
@@ -227,79 +249,56 @@ final public class Player implements MNKPlayer {
     for (MNKCell cell : sortedCells) {
       board.markCell(cell);
 
-      int score = alphaBetaWithMemory(board, depth - 1, alpha, beta, !isMaximizing);
-      if (isMaximizing) alpha = Math.max(alpha, eval = Math.max(eval, score));
-      else beta = Math.min(beta, eval = Math.min(eval, score));
+      int score =
+              alphaBetaWithMemory(board, depth - 1, alpha, beta, !isMaximizing);
+      if (isMaximizing)
+        alpha = Math.max(alpha, eval = Math.max(eval, score));
+      else
+        beta = Math.min(beta, eval = Math.min(eval, score));
 
       board.unmarkCell();
       if (beta <= alpha) break;
     }
 
     /*
-     * Traditional transposition table storing of bounds
+     * Traditional transposition table storing of bounds.
      */
     TTEntry newEntry = new TTEntry();
     newEntry.score = eval;
     newEntry.depth = depth;
-    if (eval <= alphaOrig) newEntry.flag = Flag.BETA;
-    else if (eval >= beta) newEntry.flag = Flag.ALPHA;
-    else newEntry.flag = Flag.EXACT;
+    if (eval <= alphaOrig)
+      newEntry.flag = Flag.BETA;
+    else if (eval >= beta)
+      newEntry.flag = Flag.ALPHA;
+    else
+      newEntry.flag = Flag.EXACT;
     transpositionTable.putIfAbsent(board.hash, newEntry);
-    /* Fail low result implies an upper bound */
-//    if (eval <= alpha) newEntry.flag = Flag.ALPHA;
-//
-//    /* Found an accurate minimax value - will not occur if called with zero window */
-//    else if (eval > alpha && eval < beta) newEntry.flag = Flag.BETA;
-//
-//    /* Found an accurate minimax value – will not occur if called with zero window */
-//    if (eval >= alpha) newEntry.flag = Flag.EXACT;
 
     return eval;
   }
 
   /**
+   * It gives a score to the given board given.
    *
-   * @param f
-   * @param d
-   * @return
-   */
-//  private int mtdf(Board board, int bestScore, int depth) {
-//    int g = bestScore;
-//    int upperbound = INFINITY_POSITIVE;
-//    int lowerbound = INFINITY_NEGATIVE;
-//
-//    while (lowerbound < upperbound) {
-//      int beta = Math.max(g, lowerbound + 1);
-//      g = alphaBetaWithMemory(board, depth, beta - 1, beta, true);
-//      if (g < beta) upperbound = g;
-//      else lowerbound = g;
-//    }
-//
-//    return g;
-//  }
-
-  /**
-   * It gives a score to the board passed as a parameter
-   *
-   * @param board Board to be evaluated
-   * @param depth Depth reached
-   * @return the score evaluated
+   * @param board board to be evaluate
+   * @param depth depth reached
+   * @return the board score
    */
   private int eval(Board board, int depth) {
     MNKGameState state = board.gameState();
 
-    // Se siamo primi abbiamo 1 mossa di vantaggio, dunque
-    // conviene verificare se lo state della board
     if (first) {
-      if (state.equals(myWinState)) return WINNING_SCORE + depth;
-      else if (state.equals(opponentWinState)) return LOSING_SCORE - depth;
+      if (state.equals(myWinState))
+        return WINNING_SCORE + depth;
+      else if (state.equals(opponentWinState))
+        return LOSING_SCORE - depth;
     } else {
-      if (state.equals(opponentWinState)) return LOSING_SCORE - depth;
-      else if (state.equals(myWinState)) return WINNING_SCORE + depth;
+      if (state.equals(opponentWinState))
+        return LOSING_SCORE - depth;
+      else if (state.equals(myWinState))
+        return WINNING_SCORE + depth;
     }
 
-    // if (state.equals(myWinState)) return WINNING_SCORE + depth;
-    // else if (state.equals(opponentWinState)) return LOSING_SCORE + depth;
     if (state.equals(MNKGameState.DRAW)) return DRAWING_SCORE + depth;
 
     MNKCell lastMarked = board.getLastMarkedCell();
@@ -311,20 +310,17 @@ final public class Player implements MNKPlayer {
     else
       return lastMarked.state == myCellState ? -evalLastMarked - depth
                                              : +evalLastMarked + depth;
-
-    // return first ? evalLastMarked + depth : -evalLastMarked - depth;
-    // return lastMarked.state == myCellState ? -evalLastMarked - depth
-    //                                        : +evalLastMarked + depth;
   }
 
   /**
-   * Sort the cells in a circular way (starting from up-left).
+   * Sort the cells in a circular way (starting from up-left direction).
    *
-   * @param lastCell Last marked cell
-   * @param FCSize Free cells size
+   * @param lastCell last marked cell
+   * @param FCSize free cells size
    * @return list of sorted moves
    */
-  private List<MNKCell> sortCellsInCircularWay(Board board, MNKCell lastCell, int FCSize) {
+  private List<MNKCell> sortCellsInCircularWay(
+          Board board, MNKCell lastCell, int FCSize) {
     Map<MNKCell, Integer> sortedFreeCells = new LinkedHashMap<>(FCSize);
     List<Point> copyDirections = new ArrayList<>(allDirections.values());
     List<Point> invalidDirections = new ArrayList<>();
@@ -336,58 +332,50 @@ final public class Player implements MNKPlayer {
 
         // If for the current value of "i" the cell is out of bounds of
         // the board it will surely be for the following ones too,
-        // we can therefore add this "direction" in the list of invalid directions.
+        // we can therefore add this "direction" in the list of invalid
+        // directions.
         if (!board.isCellInBounds(x, y)) {
           invalidDirections.add(direction);
           continue;
         }
 
-        // Controlliamo lo stato della cella nella board,
-        // se questo è Free allora la inseriamo nelle "sortedFreeCells"
+        // We check the status of the cell on the board,
+        // if this is Free then we insert it in the "sortedFreeCells"
         if (board.cellState(x, y) == MNKCellState.FREE) {
           MNKCell cell = new MNKCell(x, y);
           sortedFreeCells.putIfAbsent(cell, board.getCellScore(cell));
         }
       }
 
-      // Eliminiamo da copyDirections le direzioni non valide
+      // We remove invalid directions from copyDirections
       for (var notValidDirection : invalidDirections)
         copyDirections.remove(notValidDirection);
 
-      // Se non abbiamo più direzioni in cui muoverci non ha
-      // senso continuare e quindi possiamo uscire dal for.
+      // If we have no more directions in which to move,
+      // it makes no sense to continue and therefore we
+      // can exit the for.
       if (copyDirections.size() == 0) break;
 
       // Restore to initial state invalidDirections
       invalidDirections.removeAll(invalidDirections);
     }
 
-    // for (var item : sortedFreeCells.entrySet()) {
-    //   System.out.format("%s, %d\n", item.getKey(), item.getValue());
-    // }
-    // System.out.println("\n\n");
-
-    Map<MNKCell, Integer> sorted =
-      sortedFreeCells.entrySet().stream()
-                     .sorted(Entry.<MNKCell, Integer>comparingByValue().reversed())
-                     .collect(Collectors.toMap(Entry::getKey,
-                                               Entry::getValue,
-                                               (e1, e2) -> e1,
-                                               LinkedHashMap::new));
-
     // Sort the moves based on the board scores
-    // for (var item : sorted.entrySet()) {
-    //   System.out.format("%s, %d\n", item.getKey(), item.getValue());
-    // }
-    // System.exit(1);
+    Map<MNKCell, Integer> sorted =
+            sortedFreeCells.entrySet()
+                    .stream()
+                    .sorted(Entry.<MNKCell, Integer>comparingByValue()
+                                    .reversed())
+                    .collect(Collectors.toMap(Entry::getKey, Entry::getValue,
+                            (e1, e2) -> e1, LinkedHashMap::new));
 
     return Arrays.asList(sorted.keySet().toArray(new MNKCell[0]));
   }
 
   /**
-   * Sort the moves according to the state of the board
+   * Sort the moves according to the state of the board.
    *
-   * @param board Current board
+   * @param board current board
    * @return the array of sorted cells
    */
   private MNKCell[] sortMoves(Board board) {
@@ -398,16 +386,16 @@ final public class Player implements MNKPlayer {
     MNKCell opponentLastMarkedCell = board.getLastMarkedCell(opponentCellState);
 
     if (myLastMarkedCell != null) {
-      List<MNKCell> mySortedCells = sortCellsInCircularWay(board, myLastMarkedCell, size);
+      List<MNKCell> mySortedCells =
+              sortCellsInCircularWay(board, myLastMarkedCell, size);
       sortedFreeCells.addAll(mySortedCells);
       FC.removeAll(mySortedCells);
     }
 
     if (opponentLastMarkedCell != null) {
-      List<MNKCell> opponentSortedCells = sortCellsInCircularWay(board, opponentLastMarkedCell, size);
+      List<MNKCell> opponentSortedCells =
+              sortCellsInCircularWay(board, opponentLastMarkedCell, size);
 
-      // We put the remaining elements of opponentSortedCells
-      // in sortedFreeCells
       for (MNKCell cell : opponentSortedCells) {
         if (!sortedFreeCells.contains(cell)) {
           sortedFreeCells.add(cell);
@@ -416,22 +404,17 @@ final public class Player implements MNKPlayer {
       }
     }
 
-    // merge remaining free cells
     sortedFreeCells.addAll(FC);
-
-    // for (var s : sortedFreeCells) {
-    //   System.out.format("(%d, %d)\n", s.i, s.j);
-    // }
-    // System.exit(1);
-
     return sortedFreeCells.toArray(new MNKCell[0]);
   }
 
   /**
-   * @return true if the maxSearchingTime has been exceeded, false otherwise}
+   * Check if the time is running out.
+   *
+   * @return true if the maxSearchingTime has been exceeded, false otherwise
    */
   private boolean isTimeFinishing() {
-    double elapsedTime = System.currentTimeMillis() - this.startTime;
+    long elapsedTime = System.currentTimeMillis() - this.startTime;
     return elapsedTime > this.maxSearchingTime;
   }
 }
