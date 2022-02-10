@@ -42,39 +42,39 @@ function command {
 function autorun {
   echo $(mkdir -p $test_dir)
 
-  command "3" "3" "3" "$1" "2" &
-  command "4" "3" "3" "$1" "2" &
-  command "4" "4" "3" "$1" "2" &
+  command "3" "3" "3" "$1" "2" & # DRAW
+  command "4" "3" "3" "$1" "2" & # WIN (first player)
+  command "4" "4" "3" "$1" "2" & # WIN (first player)
   wait
-  command "5" "4" "4" "$1" "2" &
-  command "5" "5" "4" "$1" "2" &
-  command "5" "5" "5" "$1" "2" &
+  command "5" "4" "4" "$1" "2" & # DRAW
+  command "5" "5" "4" "$1" "2" & # DRAW
+  command "5" "5" "5" "$1" "2" & # DRAW
   wait
-  command "6" "4" "4" "$1" "2" &
-  command "6" "5" "4" "$1" "2" &
-  command "6" "6" "4" "$1" "2" &
+  command "6" "4" "4" "$1" "2" & # DRAW
+  command "6" "5" "4" "$1" "2" & # WIN (first player)
+  command "6" "6" "4" "$1" "2" & # WIN (first player)
   wait
-  command "6" "6" "5" "$1" "2" &
-  command "6" "6" "6" "$1" "2" &
-  command "7" "4" "4" "$1" "2" &
+  command "6" "6" "5" "$1" "2" & # DRAW
+  command "6" "6" "6" "$1" "2" & # DRAW
+  command "7" "4" "4" "$1" "2" & # DRAW
   wait
-  command "7" "5" "4" "$1" "2" &
-  command "7" "6" "4" "$1" "2" &
-  command "7" "7" "4" "$1" "2" &
+  command "7" "5" "4" "$1" "2" & # WIN (first player)
+  command "7" "6" "4" "$1" "2" & # WIN (first player)
+  command "7" "7" "4" "$1" "2" & # WIN (first player)
   wait
-  command "7" "5" "5" "$1" "2" &
-  command "7" "6" "5" "$1" "2" &
-  command "7" "7" "5" "$1" "2" &
+  command "7" "5" "5" "$1" "2" & # DRAW
+  command "7" "6" "5" "$1" "2" & # DRAW
+  command "7" "7" "5" "$1" "2" & # DRAW
   wait
-  command "7" "7" "6" "$1" "2" &
-  command "7" "7" "7" "$1" "2" &
-  command "8" "8" "4" "$1" "2" &
+  command "7" "7" "6" "$1" "2" & # DRAW
+  command "7" "7" "7" "$1" "2" & # ?
+  command "8" "8" "4" "$1" "2" & # WIN (first player)
   wait
-  command "10" "10" "5" "$1" "2"
+  command "10" "10" "5" "$1" "2" # ?
 
   # I do not recommend uncommenting these lines
-  # command "50" "50" "10" "$1" "2"
-  # command "70" "70" "10" "$1" "2"
+  # command "50" "50" "10" "$1" "2" # ?
+  # command "70" "70" "10" "$1" "2" # ?
 }
 
 function main {
