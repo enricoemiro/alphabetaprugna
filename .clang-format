@@ -1,0 +1,7 @@
+---
+Language: Java
+BasedOnStyle:  Chromium
+TabWidth: 2
+IndentWidth: 2
+AllowShortFunctionsOnASingleLine: Inline
+ColumnLimit: 80
