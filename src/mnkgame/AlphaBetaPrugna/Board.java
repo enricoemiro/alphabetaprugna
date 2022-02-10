@@ -11,14 +11,31 @@ import mnkgame.MNKCellState;
 import mnkgame.MNKGameState;
 
 final public class Board extends MNKBoard {
-  private Random random;
+  /**
+   * Hash of the board.
+   * It is updated when a cell is marked or unmarked.
+   */
+  public long hash;
+
+  /** Zobrist class instance. */
   public ZobristHash zobrist;
 
-  public long hash;
+  /** Board scores. */
   public Map<MNKCell, Integer> scores = new LinkedHashMap<>();
 
+  /** Random class instance. */
+  private Random random;
+
+  /** How much should the score increase in each spiral. */
+  private static int SCORE_INCREMENTER = 5;
+
   /**
-   * {@inheritDoc}
+   * Board constructor.
+   * <p>Initialize the zobrist table and set board scores.</p>
+   *
+   * Time complexity: O(M * N)
+   *
+   * @see MNKBoard#MNKBoard(int, int, int)
    */
   public Board(int M, int N, int K) {
     super(M, N, K);
@@ -30,40 +47,55 @@ final public class Board extends MNKBoard {
 
   /**
    * {@inheritDoc}
+   *
+   * Time complexity: O(1)
    */
   public MNKGameState markCell(MNKCell cell) throws IndexOutOfBoundsException {
     MNKGameState gameState = super.markCell(cell.i, cell.j);
     MNKCellState markedCellState = B[cell.i][cell.j];
-    // System.out.println(new MNKCell(cell.i, cell.j, markedCellState));
-    // ZOBRIST
-    this.hash = this.zobrist.updateZobrist(this.hash,
-                                           new MNKCell(cell.i, cell.j, markedCellState));
+
+    // XOR in the new cell
+    MNKCell newCell = new MNKCell(cell.i, cell.j, markedCellState);
+    this.hash = this.zobrist.updateZobrist(this.hash, newCell);
 
     return gameState;
   }
 
+  /**
+   * @see MNKBoard#unmarkCell()
+   *
+   * Time complexity: O(1)
+   */
   public void unmarkCell() {
     MNKCell lastMarkedCell = MC.getLast();
     super.unmarkCell();
-    // ZOBRIST
+
+    // XOR out the last marked cell
     this.hash = this.zobrist.updateZobrist(this.hash, lastMarkedCell);
   }
 
   /**
-   * {@return random cell from the free cells list}
+   * Randomly select a cell from the free cells list.
+   *
+   * Time complexity: O(1)
+   *
+   * @return random cell from the free cells list
    */
   public MNKCell pickRandomCell() {
     MNKCell[] FC = this.getFreeCells();
-    return FC[this.random.nextInt(0, FC.length)];
+    return FC[this.random.nextInt(FC.length)];
   }
 
   /**
    * Check if the cell in the input direction exists or
    * is out of bounds.
    *
-   * @param cell
-   * @param point
-   * @return
+   * Time complexity: O(1)
+   *
+   * @param cell  starting cell
+   * @param point direction to check on
+   * @return the next cell in the input direction, null if
+   *         it is out of bound
    */
   public MNKCell cellNullOrExists(MNKCell cell, Point point) {
     int i = cell.i + point.x;
@@ -74,39 +106,52 @@ final public class Board extends MNKBoard {
   }
 
   /**
+   * Returns the last marked cell.
+   *
+   * Time complexity: O(1)
+   *
    * @return last marked cell from the marked cells list
    */
-  public MNKCell getLastMarkedCell() {
-    return MC.getLast();
-  }
+  public MNKCell getLastMarkedCell() { return MC.getLast(); }
 
   /**
+   * Returns last marked cell with the input state,
+   * from the marked cells list.
    *
-   * @param cellState
-   * @return
+   * Time complexity: O(n)
+   *
+   * @param cellState State of the cell to search for
+   * @return the last cell with the input state
    */
   public MNKCell getLastMarkedCell(MNKCellState cellState) {
-    if (MC.size() == 0)
-      return null;
+    if (MC.size() == 0) return null;
 
     for (int i = MC.size() - 1; i >= 0; i--) {
       MNKCell current = MC.get(i);
-      if (current.state == cellState)
-        return current;
+      if (current.state == cellState) return current;
     }
 
     return null;
   }
 
   /**
-   * {@return true if the game state is open, false otherwise}
+   * Check the gamestate of the board.
+   *
+   * Time complexity: O(1)
+   *
+   * @return true if the game state is open, false otherwise
    */
   public boolean isGameOpen() {
     return this.gameState().equals(MNKGameState.OPEN);
   }
 
   /**
-   * {@return true if the cell is inside board bounds, false otherwise}
+   * Checks if the given cell is inside board bounds.
+   *
+   * Time complexity: O(1)
+   *
+   * @param MNKCell cell to check
+   * @return true if the cell is inside board bounds, false otherwise
    */
   public boolean isCellInBounds(MNKCell cell) {
     boolean isValidRow = cell.i >= 0 && cell.i < M;
@@ -115,6 +160,14 @@ final public class Board extends MNKBoard {
   }
 
   /**
+   * Checks if the given coordinate of the cell are inside
+   * board bounds.
+   *
+   * Time complexity: O(1)
+   *
+   * @param i cell row
+   * @param j cell column
+   * @return true if the cell is inside board bounds, false otherwise
    * @see Board#isCellInBounds(MNKCell)
    */
   public boolean isCellInBounds(int i, int j) {
@@ -122,22 +175,35 @@ final public class Board extends MNKBoard {
   }
 
   /**
-   * {@return the free cells HashSet}
+   * Get the free cells HashSet
+   *
+   * Time complexity: O(1)
+   *
+   * @return the free cells HashSet
    */
-  public HashSet<MNKCell> getFCSet() {
-    return this.FC;
-  }
+  public HashSet<MNKCell> getFCSet() { return this.FC; }
 
   /**
+   * Get the score associated to the given cell.
    *
+   * Time complexity: O(1)
+   *
+   * @param cell the cell from which to take the state
+   * @return the score associated to the given cell
    */
   public int getCellScore(MNKCell cell) {
     return scores.get(new MNKCell(cell.i, cell.j));
   }
 
-  /** Associate a score to each cell on the board */
+  /**
+   * Associate a score to each cell on the board.
+   * It is called in the class constructor.
+   *
+   * Time complexity: Θ(M*N)
+   */
   private void setBoardScores() {
     /**
+     * clang-format off
      * Example: 4x4
      *
      * up ->    |  1 |  2 |  3 |  4 |
@@ -153,6 +219,7 @@ final public class Board extends MNKBoard {
      *  - 1 : UP    -> DOWN
      *  - 2 : RIGHT -> LEFT
      *  - 3 : DOWN  -> UP
+     * clang-format on
      */
     int up = 0;
     int down = M - 1;
@@ -198,7 +265,7 @@ final public class Board extends MNKBoard {
         left++;
       }
 
-      if (direction == 3) score += 10;
+      if (direction == 3) score += SCORE_INCREMENTER;
       direction = (direction + 1) % 4;
     }
   }
