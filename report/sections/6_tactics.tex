@@ -1,0 +1,14 @@
+\subsection{Strategie considerate}
+In questa sezione vengono mostrate le varie strategie prese in considerazione durante la realizzazione del "giocatore".
+
+\textbf{Nota:} Il termine "fork" che viene utilizzato in questa sezione, indica una particolare configurazione di serie che è possiblie creare in alcune matrici e che permette una vittoria assicurata.\\
+Queste configurazioni si verificano quando un giocatore riesce ad allineare $ K - 1 $ celle nella parte centrale in una delle 4 direzioni; l'avversario non può evitare la sconfitta poichè qualsiasi lato della serie venga bloccato si può vincere dall'altro.
+
+\subsubsection{Analisi delle serie}
+Un primo approccio alla realizzazione dell'euristica prendeva in considerazione soltanto il numero di celle consecutive che componevano una serie, senza considerare le caratteristiche delle celle che ne provocavano la terminazione. I risultati ottenuti erano buoni, tuttavia la probabilità di creare delle "fork" si riduceva di molto.
+
+\subsubsection{Evaluate circolare}
+Per cercare di creare e contrastare le "fork" è stato cambiato il modo in cui venivano esplorate le celle nelle varie direzioni.\\
+Analizzando i casi in cui si generavano le "fork", abbiamo osservato che venivano create o sulla "X" - formata dalle due diagonali - o sulla croce formata dalla riga orizzontale e verticale.\\
+Di conseguenza in questa euristica vengono valutate queste due casistiche; per ogni disposizione si fissano nelle 4 direzioni le quattro celle più vicine a quella di partenza e per ogni cella fissata in una direzione, si valutano le altre celle nelle rimanenti 3 direzioni.\\
+Con questo metodo, nelle matrici con dimensioni grandi i risultati peggiorano perchè prima di concatenare le celle si cerca di creare la disposizione per la "fork", creando così uno svantaggio.

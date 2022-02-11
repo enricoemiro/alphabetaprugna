@@ -1,0 +1,5 @@
+\section{Costo computazionale}
+Il costo computazionale del metodo Select Cell è determinato principalmente dal costo del metodo Iterative Deepening.\\
+Come già detto il suo costo viene sovrastato dal costo dell'Alpha-beta pruning che nel caso peggiore ha un costo pari a: $ O((M \times N)) $.\\
+Assumendo un numero medio di mosse "m" e una massima profondità "d" si ha un costo pari a $O(m^d)$ nel caso pessimo, mentre nel caso ottimo (in cui la prima scelta è sempre la migliore) si ha un costo di $O(\sqrt{m^d})$.\\
+Grazie all'utilizzo della strategia di iterative deepening e all'ordinamento delle mosse si aumentano le probabilità di cut-off dei rami e si diminuiscono quelle di entrare nel caso pessimo. Inoltre l'integrazione della tabella di trasposizione all'interno dell'Alpha-beta pruning permette di diminuire il numero di chiamate al metodo di valutazione delle celle, diminuendo il numero di operazioni da eseguire.

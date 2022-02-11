@@ -1,0 +1,12 @@
+\section{Problema computazionale}
+Il progetto mira ad implementare, con la soluzione più efficiente, un "giocatore ottimo" nel m,n,k-game (versione generalizzata del gioco "tic-tac-toe").\\
+In un m,n,k-game ogni giocatore per vincere deve allineare, prima dell'avversario, $ K $ simboli in una matrice $ M \times N $.\\
+Il problema computazionale che emerge è quello relativo alla ricerca delle mosse migliori da effettuare ad ogni turno.\\
+Un approcio naïf è quello di controllare e valutare ogni singola mossa possibile nella matrice, scegliendone la migliore; lo svantaggio di questo approccio è dato dall'impossibilità di applicarlo in matrici molto grandi a causa dell'elevato numero di configurazioni generabili.\\
+La radice dell'albero di gioco ha infatti $ M \times N $ figli che a loro volta hanno $ (M \times N) - 1 $ figli.
+Ne consegue che l'albero di gioco avrà un numero complessivo di nodi pari a:
+\[
+O((M \times N) \cdot ((M \times N) - 1)\cdot \ldots \cdot 1) = O((M \times N)!)
+\]
+A questo punto, è evidente che l'approccio naïf non rappresenta la migliore soluzione per risolvere il problema.\\
+Di conseguenza, è necessario porre un limite alla profondità di esplorazione dell'albero e utilizzare una euristica per valutarne i nodi.

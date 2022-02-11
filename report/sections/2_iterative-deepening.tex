@@ -1,0 +1,5 @@
+\subsection{Iterative deepening depth-first search (IDDFS)}
+L'iterative deepening gestisce la ricerca della mossa migliore eseguendo l'algoritmo Alpha-beta con una profondità sempre maggiore, realizzando così una visita in ampiezza dell'albero di gioco.\\
+Il maggior numero di esecuzioni dell'Alpha-beta non peggiora la complessità computazionale in quanto il costo della ricerca a massima profondità sovrasta quelle a profondità minore.\\
+Inoltre l'aumento del numero di iterazioni complessivo viene attenuato dall'ordinamento delle mosse - il quale permette un numero maggiore di potature - e dal salvataggio delle configurazioni di gioco già esplorate.\\
+Questa strategia permette di sfruttare al meglio l'algoritmo Alpha-beta in quanto consente di ottenere la valutazione di un numero maggiore di configurazioni rispetto a quelle che si ottengono con una profondità fissata.

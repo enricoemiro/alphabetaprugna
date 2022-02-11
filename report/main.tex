@@ -1,0 +1,41 @@
+\documentclass[a4paper, 12pt]{extarticle}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage[parfill]{parskip}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\floatname{algorithm}{Algoritmo}
+\renewcommand{\listalgorithmname}{Lista Algoritmi}
+
+\title{AlphaBetaPrugna}
+\author{Enrico Emiro - matricola N. 0000975012\\
+Giulio Billi - matricola N. 0000970522}
+\date{11 Febbraio 2022}
+
+\begin{document}
+
+\maketitle
+\begin{center}
+    Corso di Algoritmi e Strutture Dati dell'Università di Bologna\\
+    Relazione progetto
+\end{center}
+\tableofcontents
+\listofalgorithms
+\newpage
+
+\input{sections/0_introduction}
+\input{sections/1_solution-adopted}
+\input{sections/2_iterative-deepening}
+\input{sections/3_sort-moves}
+\input{sections/4_heuristic}
+\input{sections/5_tt-zobrist}
+\input{sections/6_tactics}
+\input{sections/7_time-complexity}
+\input{sections/8_improvements}
+\input{sections/9_sources}
+
+\end{document}

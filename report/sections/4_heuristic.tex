@@ -1,0 +1,43 @@
+\subsection{Euristica}
+L'euristica utilizzata per valutare i nodi intermedi si basa principalmente sulla valutazione delle serie, in particolare valutiamo, rispetto all'ultima cella marcata dall'alpha-beta, le seguenti caratteristiche:
+\begin{itemize}
+    \item Numero di celle consecutive che compongono una serie, in ogni direzione possibile e la loro distanza rispetto a K;
+    \item Per ogni serie trovata prendiamo in considerazione le celle che hanno provocato la terminazione della serie, sui suoi due lati;
+    \item La posizione della cella di partenza.
+\end{itemize}
+
+\subsubsection{Serie}
+Le serie vengono valutate partendo dall'ultima cella marcata  dall'Alpha-beta, nelle 4 direzioni che attraversano la cella considerata (verticale, orizzontale, diagonale e antidiagonale).\\
+In particolare, ogni direzione viene esplorata contando le celle consecutive su un lato e poi sull'altro, e l'esplorazione si ferma una volta raggiunta una cella con uno stato diverso rispetto a quello di partenza.\\
+Una volta terminata l'esplorazione sui due lati, i risultati vengono uniti e valutati in base a quanto si avvicina la serie a K.\\
+Di seguito riportiamo lo pseudo-codice per la valutazione delle serie.
+\begin{algorithm}[H]
+    \caption{Valutazione delle serie}\label{alg:cap}
+
+    \begin{algorithmic}[1]
+        \Function{EvalSeries}{$ alignments $}
+        \If{$ K > 2 \; \wedge \; alignments == K - 1 $} \Return{100}
+        \ElsIf{$ K > 3 \; \wedge \; alignments == K - 2 $} \Return{30}
+        \ElsIf{$ K > 4 \; \wedge \; alignments == K - 3 $} \Return{10}
+        \EndIf
+        \State \Return{0}
+        \EndFunction
+    \end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Incrementatore (increaser)}
+Oltre a contare il numero di celle consecutive, viene considerato lo stato delle celle che terminano ogni serie e in base ad esso viene aumentato o diminuito lo score della serie.
+Abbiamo definito 5 diversi gruppi di celle terminali e a ogni gruppo abbiamo assegnato un valore diverso:
+\begin{itemize}
+    \item \textbf{Gruppo 1}: se le celle terminali sono entrambe nulle (fuori dalla board) o dell'avversario, lo score della serie rimane invariato;
+    \item \textbf{Gruppo 2}: se le celle sono una nulla e una libera allora lo score viene incrementato di 1;
+    \item \textbf{Gruppo 3}: se le celle sono una nulla e una dell'avversario allora lo score rimane invariato;
+    \item \textbf{Gruppo 4}: se le celle sono una libera e una dell'avversario lo score viene incrementato di 1;
+    \item \textbf{Gruppo 5}: se le celle sono entrambe libere lo score viene incrementato di 2;
+\end{itemize}
+In questo modo abbiamo un valore leggermente più alto per le serie che hanno più probabilità di produrre una vittoria.
+
+\subsubsection{Board scores}
+Analizzando le partite, abbiamo visto come le celle centrali della matrice danno al giocatore più opzioni per arrivare alla vittoria e in alcuni casi, permettono di creare serie che, se non vengono bloccate in partenza, portano a una vittoria assicurata (ad esempio in una matrice $ 5 \times 5 \times 4  $ se in una delle direzioni un giocatore riesce a concatenare tre celle al centro ha una vittoria assicurata perchè l'avversario non ha possibilità di bloccarlo).\\
+Di conseguenza, abbiamo assegnato a ogni cella uno score che diventa maggiore più ci si avvicina al centro e che viene sommato alle celle che vengono valutate.
+

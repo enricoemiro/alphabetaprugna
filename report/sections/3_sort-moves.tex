@@ -1,0 +1,7 @@
+\subsection{Ordinamento delle mosse}
+Per aumentare le potature e valutare prima le celle più promettenti, è stato effettuato un ordinamento delle mosse in base alla loro posizione e alla loro distanza dall'ultima cella marcata. In particolare, le mosse vengono prima ordinate circolarmente rispetto all'ultima cella marcata, allontanandosi progressivamente fino a raggiungere una distanza di K.\\
+Successivamente vengono riordinate in base al valore associato alla loro posizione che è contenuto in una LinkedHashMap.\\
+Una volta ordinate le mosse relative a un giocatore, vengono ordinate nello stesso modo quelle dell'avversario e infine vengono unite alle restanti celle libere.\\
+L'ordinamento delle celle dei due giocatori viene eseguito K volte nelle 8 direzioni possibili, con un costo computazionale pari a:
+\[ O(8 * k) = O(K) \]
+per ogni giocatore, mentre l'inserimento delle restanti celle libere ha un costo di:  \[ O((M * N) - (8 * K)) \]

@@ -1,0 +1,21 @@
+\section{Soluzione adottata}
+Per risolvere il problema sopra citato, il "giocatore" è stato implementato utilizzando "alpha-beta pruning" come algoritmo di ricerca.\\
+La profondità massima dell'alpha-beta viene gestita applicando la strategia di "iterative deepening".\\
+Le configurazioni di gioco sono valutate attraverso un'euristica basata sul numero di celle consecutive di ogni giocatore.\\
+Le celle che vengono esplorate sono ordinate dando priorità a quelle più vicine all'ultima mossa e con una posizione migliore.\\
+Infine, per evitare di valutare le stesse configurazioni di gioco più volte, esse vengono salvate all'interno di una hash table nota come "tabella delle trasposizioni".
+
+\subsection{Select Cell}
+Il metodo "Select Cell" si occupa di scegliere la mossa che il giocatore deve eseguire. Esso, nel caso in cui il nostro giocatore sia il primo a giocare, sceglie direttamente la cella centrale della matrice di gioco, poichè permette di avere il maggior numero di possibilità di movimento.\\
+Se invece non siamo i primi a giocare, la scelta della cella è affidata all'algoritmo Alpha-beta pruning.\\
+Nel caso in cui l'Alpha-beta non riesca a calcolare la mossa entro il tempo limite, viene scelta una mossa casuale tra quelle disponibili.
+
+\subsection{Alpha-beta pruning}
+Alpha-beta pruning è una variante dell'algoritmo minimax, che riduce drasticamente il numero di nodi da valutare nell'albero di ricerca e si basa su due valori: $ \alpha $ e $ \beta $.\\
+$ \alpha $ e $ \beta $ rappresentano, in ogni punto dell'albero, la posizione migliore e peggiore che è possibile raggiungere a partire dalla posizione $ (i, j) $.\\
+Se A è il giocatore massimizzante, B è il giocatore minimizzante e $ (i, j) $ è la posizione di partenza:
+\begin{itemize}
+    \item $ \alpha $: è il punteggio minimo che A può raggiungere a partire da $ (i, j) $.
+    \item $ \beta $: è il punteggio massimo che B può raggiungere a partire da $ (i, j) $.
+\end{itemize}
+Se $ \beta \leq \alpha $, allora il sottoalbero relativo al nodo verrà "potato" perchè sicuramente la soluzione non sarà ottima.

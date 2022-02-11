@@ -1,0 +1,11 @@
+\subsection{Tabella di trasposizione}
+Le configurazioni di gioco già valutate vengono salvate all'interno di una Hash Table nota come "tabella di trasposizione" in modo da non doverne ricalcolare il loro valore.\\
+Le chiavi per accedere alle configurazioni salvate nella Hash Table vengono calcolate attraverso la funzione di hashing "Zobrist", che in base al Player che sta giocando e alle coordinate delle celle, calcola la chiave e il valore di hash associato alla configurazione presa in considerazione.\\
+Questa funzione di hashing viene inizializzata come una matrice tridimensionale $ 2 \times M \times N $ con valori casuali.\\
+Nella tabella di trasposizione i valori che vengono salvati per ogni configurazione sono:
+\begin{itemize}
+    \item \textbf{Score}: punteggio associato alla configurazione;
+    \item \textbf{Depth}: profondità a cui è stata valutata la configurazione;
+    \item \textbf{Flag}: indica se lo score salvato è un valore di bound oppure è un valore ottenuto tramite una valutazione euristica.
+\end{itemize}
+Per evitare di mantenere nella tabella di trasposizione configurazioni che non sono più raggiungibili (ossia già giocate) queste vengono eliminate dalla Hash Table durante l'operazione di "cleanup" che avviene durante il turno dell'avversario.
