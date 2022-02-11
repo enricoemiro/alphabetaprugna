@@ -80,14 +80,14 @@ public class ZobristHash {
    *
    * <p>Time complexity: <code>O(1)</code></p>
    *
-   * @param cell
+   * @param cell Player cell
    * @return 0 if the state of the cell is P1, 1 otherwise
    */
   private int player(MNKCell cell) {
-    if (cell.state == MNKCellState.FREE) {
-      System.out.println("ZobristHash: free cell in player()");
-      System.exit(1);
-    }
+    // if (cell.state == MNKCellState.FREE) {
+    //   System.out.println("ZobristHash: free cell in player()");
+    //   System.exit(1);
+    // }
 
     return cell.state == MNKCellState.P1 ? 0 : 1;
   }
